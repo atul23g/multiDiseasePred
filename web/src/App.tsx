@@ -14,15 +14,30 @@ export default function App() {
   const [isChatbotOpen, setIsChatbotOpen] = useState(false)
   const location = useLocation()
   
+  // Auth disable flag for local/dev usage
+  const DISABLE_AUTH = (import.meta as any).env.VITE_DISABLE_AUTH === 'true'
+  
   // Hide chatbot on triage page to avoid duplicate interfaces
-  const shouldShowChatbot = isSignedIn && location.pathname !== '/triage'
+  // When auth is disabled, allow chatbot even if not signed in
+  const shouldShowChatbot = (DISABLE_AUTH || isSignedIn) && location.pathname !== '/triage'
 
   function RequireAuth({ children }: { children: React.ReactNode }) {
-    const DISABLE = (import.meta as any).env.VITE_DISABLE_AUTH === 'true'
-    if (DISABLE) return <>{children}</>
+    if (DISABLE_AUTH) return <>{children}</>
     if (!isLoaded) return <div className="container">Loading...</div>
     if (!isSignedIn) return <Navigate to="/login" replace />
     return <>{children}</>
+  }
+
+  // For the login route, render a clean full-page layout without nav so
+  // the Clerk sign-in card can be perfectly centered on the viewport.
+  if (location.pathname === '/login') {
+    return (
+      <main className="min-h-screen w-full bg-slate-900 flex items-center justify-center">
+        <div className="w-full max-w-md flex items-center justify-center">
+          <Login />
+        </div>
+      </main>
+    )
   }
 
   return (
@@ -47,7 +62,14 @@ export default function App() {
       <main className="container">
         <ClerkSync>
           <Routes>
-            <Route path="/" element={isSignedIn ? <Navigate to="/upload" replace /> : <Navigate to="/login" replace />} />
+            <Route
+              path="/"
+              element={
+                DISABLE_AUTH
+                  ? <Navigate to="/upload" replace />
+                  : (isSignedIn ? <Navigate to="/upload" replace /> : <Navigate to="/login" replace />)
+              }
+            />
             <Route path="/login" element={<Login />} />
             <Route path="/upload" element={<RequireAuth><Upload /></RequireAuth>} />
             <Route path="/manual" element={<RequireAuth><Manual /></RequireAuth>} />

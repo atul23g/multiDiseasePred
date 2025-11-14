@@ -5,53 +5,26 @@ import { useNavigate } from 'react-router-dom'
 export default function Login() {
   const { isSignedIn } = useUser()
   const navigate = useNavigate()
+  const DISABLE_AUTH = (import.meta as any).env.VITE_DISABLE_AUTH === 'true'
 
   useEffect(() => {
+    if (DISABLE_AUTH) {
+      navigate('/upload', { replace: true })
+      return
+    }
     if (isSignedIn) {
       navigate('/upload', { replace: true })
     }
-  }, [isSignedIn, navigate])
+  }, [DISABLE_AUTH, isSignedIn, navigate])
+
+  if (DISABLE_AUTH) {
+    return <div>Redirecting...</div>
+  }
 
   return (
-    <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+    <div className="shadow-2xl rounded-2xl overflow-hidden w-full">
       <SignedOut>
-        <SignIn
-          afterSignInUrl="/upload"
-          appearance={{
-            variables: {
-              colorBackground: 'transparent',
-              colorPrimary: '#0ea5e9',
-              colorText: '#1f2937',
-              colorInputBackground: '#ffffff',
-              colorInputText: '#111827',
-              borderRadius: '12px',
-              fontSize: '16px',
-            },
-            elements: {
-              card: { background: 'transparent', boxShadow: 'none', border: 'none' },
-              footer: { display: 'none' },
-              formButtonPrimary: {
-                backgroundColor: '#0ea5e9',
-                color: '#ffffff',
-                border: 'none',
-                boxShadow: '0 2px 0 rgba(0,0,0,0.05)'
-              },
-              formFieldInput: {
-                backgroundColor: '#ffffff',
-                border: '1px solid #e5e7eb',
-                color: '#111827'
-              },
-              headerTitle: { color: '#111827' },
-              headerSubtitle: { color: '#4b5563' },
-              dividerText: { color: '#6b7280' },
-              socialButtonsBlockButton: {
-                backgroundColor: '#ffffff',
-                border: '1px solid #e5e7eb',
-                color: '#111827'
-              },
-            },
-          }}
-        />
+        <SignIn afterSignInUrl="/upload" />
       </SignedOut>
       <SignedIn />
     </div>

@@ -1,2 +1,8 @@
-
 web/.env
+web/.env.production
+web/node_modules
+node_modules
+dist
+.vercel
+.env
+.env.production

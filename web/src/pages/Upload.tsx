@@ -283,8 +283,20 @@ export default function Upload() {
 
   const onGetAdvice = () => {
     if (!havePred) return
-    // Pass current report data to triage page
-    navigate('/triage', { state: { reportData: result } })
+    // Pass current report data to triage page in the same structure as localStorage
+    const reportData = {
+      task,
+      features,
+      prediction: result?.pred ? {
+        label: result.pred.label,
+        probability: result.pred.probability,
+        health_score: result.pred.health_score,
+      } : null,
+      prediction_id: result?.pred?.prediction_id,
+      lifestyle,
+      symptoms,
+    }
+    navigate('/triage', { state: { reportData } })
   }
 
   return (

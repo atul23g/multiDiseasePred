@@ -74,7 +74,7 @@ export default function Triage() {
                 parts.push(`Symptoms: ${symTrue.length ? symTrue.join(', ') : 'none reported'}`)
               }
               const opener = parts.length ? parts.join(' | ') : 'Please give general guidance based on the prediction.'
-              
+          
               setMessages([{ role: 'ai', content: greeting }])
               // Auto-generate initial analysis
               setTimeout(() => ask(opener), 500)
@@ -171,7 +171,7 @@ export default function Triage() {
   }
 
   const ask = async (q: string) => {
-    if (!latest) { setError('No previous prediction context. Run an analysis first.'); return }
+    if (!latest) return
     if (!q.trim()) return
     setLoading(true)
     setError(null)

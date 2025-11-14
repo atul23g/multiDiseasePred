@@ -155,11 +155,29 @@ export default function History() {
     )
   }
 
+  const clinicalEntries = latest?.features
+    ? Object.entries(latest.features).filter(([_, value]) => value !== null && value !== undefined && value !== '')
+    : []
+
+  const lifestyleEntries = latest?.lifestyle
+    ? Object.entries(latest.lifestyle).filter(([_, value]) => value !== null && value !== undefined && value !== '')
+    : []
+
+  const activeSymptoms = latest?.symptoms
+    ? Object.entries(latest.symptoms).filter(([_, value]) => value === true)
+    : []
+
+  const clinicalHighlights = clinicalEntries.slice(0, 4)
+  const lifestyleHighlights = lifestyleEntries.slice(0, 3)
+  const hasSymptoms = activeSymptoms.length > 0
+
   return (
     <div className="container">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Health History</h1>
-        <p className="text-gray-600">Review your previous health assessments and track your wellness journey</p>
+      <div className="mb-10">
+        <h1 className="text-4xl font-bold text-gray-900 mb-3">Health History</h1>
+        <p className="text-gray-600 text-lg max-w-3xl">
+          Review your previous health assessments, keep tabs on key vitals, and stay informed with curated lifestyle insights.
+        </p>
       </div>
 
       {!latest && (
@@ -187,115 +205,40 @@ export default function History() {
       )}
 
       {latest && (
-        <div className="space-y-6">
-          {/* Latest Assessment Card */}
-          <div className="card bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
+        <div className="max-w-2xl mx-auto">
+          <div className="card rounded-2xl bg-white border border-gray-200 p-6">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-50 flex items-center justify-center">
                 {getTaskIcon(latest.task)}
-                <div>
-                  <h2 className="text-xl font-semibold text-gray-900">Latest Assessment</h2>
-                  <p className="text-sm text-gray-600">{getTaskLabel(latest.task)} Analysis</p>
-                </div>
               </div>
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <Calendar className="w-4 h-4" />
-                <span>Recent</span>
-              </div>
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">{getTaskLabel(latest.task)}</h2>
+              <p className="text-gray-500">Latest Assessment</p>
             </div>
 
             {latest.prediction && (
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-white rounded-lg p-4 border">
-                  <div className="text-2xl font-bold text-blue-600">
-                    {latest.prediction.health_score?.toFixed(1) || 'N/A'}
-                  </div>
-                  <div className="text-sm text-gray-600">Health Score</div>
-                </div>
-                <div className="bg-white rounded-lg p-4 border">
-                  <div className="flex items-center gap-2">
-                    {getRiskLevel(latest.prediction.label, latest.prediction.probability).icon}
-                    <span className={`font-semibold ${getRiskLevel(latest.prediction.label, latest.prediction.probability).color.split(' ')[0]}`}>
-                      {getRiskLevel(latest.prediction.label, latest.prediction.probability).text}
-                    </span>
-                  </div>
-                  <div className="text-sm text-gray-600">Risk Assessment</div>
-                </div>
-                <div className="bg-white rounded-lg p-4 border">
-                  <div className="text-lg font-semibold text-gray-900">
-                    {(latest.prediction.probability * 100).toFixed(1)}%
-                  </div>
-                  <div className="text-sm text-gray-600">Probability</div>
+              <div className="text-center mb-6">
+                <div className="inline-block bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-100">
+                  <p className="text-sm text-gray-600 mb-2">Health Score</p>
+                  <div className="text-5xl font-bold text-blue-600 mb-2">{latest.prediction.health_score?.toFixed(1)}</div>
+                  <p className="text-sm text-gray-500">out of 100</p>
                 </div>
               </div>
             )}
 
-            {/* Clinical Data */}
-            {latest.features && Object.keys(latest.features).length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Clinical Data</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Object.entries(latest.features)
-                    .filter(([_, value]) => value !== null && value !== undefined && value !== '')
-                    .map(([key, value]) => (
-                      <div key={key} className="bg-white rounded-lg p-4 border">
-                        <div className="text-sm font-medium text-gray-900">{formatFeatureLabel(key)}</div>
-                        <div className="text-lg font-semibold text-gray-700">{value}</div>
-                      </div>
-                    ))}
-                </div>
-              </div>
-            )}
-
-            {/* Lifestyle Data */}
-            {latest.lifestyle && Object.keys(latest.lifestyle).length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Lifestyle Factors</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Object.entries(latest.lifestyle).map(([key, value]) => (
-                    <div key={key} className="bg-white rounded-lg p-4 border">
-                      <div className="text-sm font-medium text-gray-900">{formatLifestyleLabel(key)}</div>
-                      <div className="text-lg font-semibold text-gray-700 capitalize">{value}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Symptoms */}
-            {latest.symptoms && Object.keys(latest.symptoms).length > 0 && (
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Reported Symptoms</h3>
-                <div className="flex flex-wrap gap-2">
-                  {Object.entries(latest.symptoms)
-                    .filter(([_, value]) => value === true)
-                    .map(([key, _]) => (
-                      <span key={key} className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
-                        {formatSymptomLabel(key)}
-                      </span>
-                    ))}
-                </div>
-                {Object.entries(latest.symptoms).filter(([_, value]) => value === true).length === 0 && (
-                  <p className="text-gray-600">No symptoms reported</p>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex gap-4">
-            <button 
-              onClick={() => navigate('/triage')}
-              className="btn btn-primary"
-            >
-              Consult Dr. Intelligence
-            </button>
-            <button 
-              onClick={() => navigate('/upload')}
-              className="btn btn-secondary"
-            >
-              New Assessment
-            </button>
+            <div className="flex justify-center" style={{ gap: '2rem', flexWrap: 'wrap' }}>
+              <button
+                onClick={() => navigate('/triage')}
+                className="btn btn-primary px-4 py-2 text-sm"
+              >
+                Consult Dr. Intelligence
+              </button>
+              <button
+                onClick={() => navigate('/upload')}
+                className="btn btn-secondary px-4 py-2 text-sm"
+              >
+                New Assessment
+              </button>
+            </div>
           </div>
         </div>
       )}
