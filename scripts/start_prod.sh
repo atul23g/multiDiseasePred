@@ -4,10 +4,13 @@ set -euo pipefail
 
 echo "==> Starting Disease AI API (production)"
 
-# Ensure .env present
-if [ ! -f .env ]; then
-  echo "❌ .env not found. Copy .env.example to .env and set values."
-  exit 1
+# Load .env if present (Railway provides env via platform, so .env is optional)
+if [ -f .env ]; then
+  echo "ℹ️ Loading .env"
+  # shellcheck disable=SC1090
+  set -a; source .env; set +a
+else
+  echo "ℹ️ .env not found; relying on platform environment variables"
 fi
 
 # Activate venv if available
@@ -16,9 +19,8 @@ if [ -z "${VIRTUAL_ENV:-}" ] && [ -d "venv" ]; then
   source venv/bin/activate
 fi
 
-# Minimal runtime checks
+# Minimal runtime checks (uses platform env; .env loaded above if present)
 python - <<'PY'
-from dotenv import load_dotenv; load_dotenv(".env")
 import os
 required = [
   ("DATABASE_URL", False),
@@ -29,8 +31,12 @@ if missing:
 print("✅ Env check passed")
 PY
 
-# Default Gunicorn env
-export GUNICORN_BIND=${GUNICORN_BIND:-0.0.0.0:8000}
+# Bind to Railway PORT if provided
+if [ -n "${PORT:-}" ]; then
+  export GUNICORN_BIND="0.0.0.0:${PORT}"
+else
+  export GUNICORN_BIND=${GUNICORN_BIND:-0.0.0.0:8000}
+fi
 export GUNICORN_WORKERS=${GUNICORN_WORKERS:-$(python - <<'PY'
 import multiprocessing
 print(multiprocessing.cpu_count()*2+1)
