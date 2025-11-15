@@ -2,7 +2,7 @@
 
 import os
 from fastapi import Request, HTTPException
-from src.db.prisma import prisma
+from src.db.client import prisma
 
 
 async def get_user_id(request: Request) -> str:

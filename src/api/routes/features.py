@@ -10,7 +10,7 @@ from src.api.schemas import (
 from src.utils.enums import Task
 from src.utils.merge import merge_features
 from src.api.deps import get_user_id, get_db
-from src.db.prisma import prisma
+from src.db.client import prisma
 
 router = APIRouter()
 

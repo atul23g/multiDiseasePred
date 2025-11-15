@@ -9,7 +9,7 @@ from src.api.schemas import (
 from src.models.inference_router import predict_tabular
 from src.scoring.health_score import compute_score
 from src.api.deps import get_user_id
-from src.db.prisma import prisma
+from src.db.client import prisma
 
 router = APIRouter()
 

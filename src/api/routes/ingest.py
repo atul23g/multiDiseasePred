@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, UploadFile, File, Depends, HTTPException, Query
 from src.api.deps import get_user_id
-from src.db.prisma import prisma
+from src.db.client import prisma
 from prisma import Json
 from src.utils.enums import Task
 from pathlib import Path

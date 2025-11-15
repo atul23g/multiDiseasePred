@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Request, HTTPException, Depends
 from src.api.schemas import SessionSubmitRequest, SessionSubmitResponse
 from src.api.deps import get_user_id
-from src.db.prisma import prisma
+from src.db.client import prisma
 from prisma import Json
 
 router = APIRouter()

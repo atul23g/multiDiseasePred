@@ -186,10 +186,10 @@ export default function History() {
             <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No Health History Yet</h3>
             <p className="text-gray-600 mb-6">Start your health journey by uploading a medical report or entering your health data manually.</p>
-            <div className="flex justify-center gap-4">
+            <div className="btn-row" style={{ justifyContent: 'center' }}>
               <button 
                 onClick={() => navigate('/upload')}
-                className="btn btn-primary"
+                className="btn"
               >
                 Upload Report
               </button>
@@ -225,7 +225,7 @@ export default function History() {
               </div>
             )}
 
-            <div className="flex justify-center" style={{ gap: '2rem', flexWrap: 'wrap' }}>
+            <div className="btn-row" style={{ justifyContent: 'flex-start' }}>
               <button
                 onClick={() => navigate('/triage')}
                 className="btn btn-primary px-4 py-2 text-sm"

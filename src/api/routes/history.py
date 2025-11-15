@@ -1,7 +1,7 @@
 """History endpoints for reports and predictions."""
 
 from fastapi import APIRouter, Depends, HTTPException
-from src.db.prisma import prisma
+from src.db.client import prisma
 from src.api.deps import get_user_id
 
 router = APIRouter()

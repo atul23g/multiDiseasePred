@@ -158,6 +158,24 @@ body{
   background:var(--secondary-dark);
 }
 
+/* Secondary Button */
+.btn-secondary{
+  background:var(--surface-hover);
+  color:var(--text-primary);
+  border:1px solid var(--border);
+}
+
+.btn-secondary:hover{
+  background:var(--surface-light);
+}
+
+.btn-row{
+  display:flex;
+  gap:20px;
+  flex-wrap:wrap;
+  align-items:center;
+}
+
 /* Form Elements */
 .input{
   display:block;

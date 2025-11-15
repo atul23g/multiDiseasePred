@@ -32,8 +32,25 @@ export default function App() {
   // the Clerk sign-in card can be perfectly centered on the viewport.
   if (location.pathname === '/login') {
     return (
-      <main className="min-h-screen w-full bg-slate-900 flex items-center justify-center">
-        <div className="w-full max-w-md flex items-center justify-center">
+      <main
+        style={{
+          minHeight: '100vh',
+          width: '100%',
+          background: 'var(--background)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '480px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
           <Login />
         </div>
       </main>

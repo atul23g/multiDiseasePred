@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from starlette.middleware.httpsredirect import HTTPSRedirectMiddleware
 from src.api.auth import auth_middleware
-from src.db.prisma import prisma
+from src.db.client import prisma
 from src.api.routes import features, predict, triage, session
 from src.api.routes import history
 from src.api.routes import auth_clerk

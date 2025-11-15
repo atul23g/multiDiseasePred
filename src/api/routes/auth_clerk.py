@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, EmailStr
-from src.db.prisma import prisma
+from src.db.client import prisma
 
 router = APIRouter()
 
