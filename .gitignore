@@ -2,3 +2,15 @@
 .env.production
 web/.env.example    
 web/.env
+
+.venv/
+venv/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+node_modules/
+web/node_modules/
+web/dist/

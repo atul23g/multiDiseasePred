@@ -32,25 +32,8 @@ export default function App() {
   // the Clerk sign-in card can be perfectly centered on the viewport.
   if (location.pathname === '/login') {
     return (
-      <main
-        style={{
-          minHeight: '100vh',
-          width: '100%',
-          background: 'var(--background)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}
-      >
-        <div
-          style={{
-            width: '100%',
-            maxWidth: '480px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
+      <main className="min-h-screen w-full bg-slate-900 flex items-center justify-center">
+        <div className="w-full max-w-md flex items-center justify-center">
           <Login />
         </div>
       </main>
@@ -124,7 +107,9 @@ export default function App() {
                 features: latest.features || {},
                 prediction: latest.prediction || null,
                 lifestyle: latest.lifestyle || {},
-                symptoms: latest.symptoms || {}
+                symptoms: latest.symptoms || {},
+                extracted_text: latest.extracted_text || '',
+                highlights: latest.highlights || []
               }
             } catch {
               return {

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Calendar, Heart, Activity, Brain, User, FileText, TrendingUp, AlertCircle } from 'lucide-react'
+import { getAccessToken } from '../lib/auth'
+import { getHistoryReports, predictWithFeatures, Task } from '../lib/api'
 
 interface HealthData {
   task: string
@@ -30,7 +32,7 @@ interface Report {
 export default function History() {
   const navigate = useNavigate()
   const [latest, setLatest] = useState<HealthData | null>(null)
-  const [reports, setReports] = useState<Report[]>([])
+  const [reports, setReports] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -54,12 +56,9 @@ export default function History() {
 
   const loadReports = async () => {
     try {
-      // This would typically come from your API
-      // For now, we'll use localStorage data
-      const storedReports = localStorage.getItem('health_reports')
-      if (storedReports) {
-        setReports(JSON.parse(storedReports))
-      }
+      const token = await getAccessToken()
+      const rows = await getHistoryReports(token)
+      setReports(rows || [])
     } catch (error) {
       console.error('Error loading reports:', error)
     }
@@ -173,9 +172,9 @@ export default function History() {
 
   return (
     <div className="container">
-      <div className="mb-10">
-        <h1 className="text-4xl font-bold text-gray-900 mb-3">Health History</h1>
-        <p className="text-gray-600 text-lg max-w-3xl">
+      <div className="page-header">
+        <h1 className="page-title">Health History</h1>
+        <p className="page-subtitle">
           Review your previous health assessments, keep tabs on key vitals, and stay informed with curated lifestyle insights.
         </p>
       </div>
@@ -186,10 +185,10 @@ export default function History() {
             <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No Health History Yet</h3>
             <p className="text-gray-600 mb-6">Start your health journey by uploading a medical report or entering your health data manually.</p>
-            <div className="btn-row" style={{ justifyContent: 'center' }}>
+            <div className="btn-group">
               <button 
                 onClick={() => navigate('/upload')}
-                className="btn"
+                className="btn btn-primary"
               >
                 Upload Report
               </button>
@@ -206,7 +205,7 @@ export default function History() {
 
       {latest && (
         <div className="max-w-2xl mx-auto">
-          <div className="card rounded-2xl bg-white border border-gray-200 p-6">
+          <div className="card assessment-card rounded-2xl p-6">
             <div className="text-center mb-6">
               <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-blue-50 flex items-center justify-center">
                 {getTaskIcon(latest.task)}
@@ -225,23 +224,102 @@ export default function History() {
               </div>
             )}
 
-            <div className="btn-row" style={{ justifyContent: 'flex-start' }}>
+            <div className="btn-group">
               <button
                 onClick={() => navigate('/triage')}
-                className="btn btn-primary px-4 py-2 text-sm"
+                className="btn btn-primary"
               >
                 Consult Dr. Intelligence
               </button>
               <button
-                onClick={() => navigate('/upload')}
-                className="btn btn-secondary px-4 py-2 text-sm"
+                onClick={async () => {
+                  // Analyze the latest assessment
+                  try {
+                    const token = await getAccessToken()
+                    const features = latest.features || {}
+                    const task = (latest.task || 'general') as Task
+                    if (task !== 'general' && latest.prediction) {
+                      // Already has prediction, just navigate to triage with existing data
+                      navigate('/triage', { state: { reportData: latest } })
+                    } else if (task !== 'general') {
+                      // Get new prediction
+                      const pred = await predictWithFeatures(task, features, latest.prediction_id, token)
+                      const updatedLatest = {
+                        ...latest,
+                        prediction: { label: pred.label, probability: pred.probability, health_score: pred.health_score },
+                        prediction_id: pred.prediction_id
+                      }
+                      localStorage.setItem('latest_result', JSON.stringify(updatedLatest))
+                      navigate('/triage', { state: { reportData: updatedLatest } })
+                    } else {
+                      // General mode - navigate directly
+                      navigate('/triage', { state: { reportData: latest } })
+                    }
+                  } catch (error) {
+                    console.error('Error analyzing latest assessment:', error)
+                    // Fallback: just navigate to triage with existing data
+                    navigate('/triage', { state: { reportData: latest } })
+                  }
+                }}
+                className="btn btn-secondary"
               >
-                New Assessment
+                Analyze
               </button>
             </div>
           </div>
         </div>
       )}
+
+      <div className="card mt-6">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xl font-semibold text-gray-900">Reports</h2>
+        </div>
+        <div className="space-y-3">
+          {reports.map((r) => (
+            <div key={r.id} className="report-item flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {getTaskIcon(r.task)}
+                <div>
+                  <div className="font-medium text-gray-900">{r.rawFilename || 'Report'}</div>
+                  <div className="text-sm text-gray-500 flex items-center gap-2"><Calendar className="w-4 h-4" />{new Date(r.createdAt).toLocaleString()}</div>
+                </div>
+              </div>
+              <div className="btn-group" style={{gap:'0.5rem'}}>
+                <button
+                  className="btn btn-secondary"
+                  onClick={()=>{
+                    navigate('/upload', { state: { report: r } })
+                  }}
+                >
+                  Analyze
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={()=>{
+                    const latest = {
+                      task: r.task,
+                      features: r.extracted || {},
+                      prediction: null,
+                      prediction_id: null,
+                      lifestyle: {},
+                      symptoms: {},
+                      extracted_text: r.rawOCR?.text || '',
+                      highlights: Object.entries(r.extractedMeta||{}).filter(([_,v]: any)=>v?.out_of_range).map(([k]: any)=>k)
+                    }
+                    localStorage.setItem('latest_result', JSON.stringify(latest))
+                    navigate('/triage', { state: { reportData: latest } })
+                  }}
+                >
+                  Consult
+                </button>
+              </div>
+            </div>
+          ))}
+          {reports.length === 0 && (
+            <div className="text-sm text-gray-500">No reports yet.</div>
+          )}
+        </div>
+      </div>
     </div>
   )
 }

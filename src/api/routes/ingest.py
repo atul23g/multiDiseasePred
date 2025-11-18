@@ -8,6 +8,9 @@ from src.utils.enums import Task
 from pathlib import Path
 import tempfile
 import os
+import json
+from openai import OpenAI
+from src.llm.prompts import load_ranges
 
 router = APIRouter()
 
@@ -59,52 +62,64 @@ async def ingest_report(
         tmp_path = tmp_file.name
     
     try:
-        # Extract text and parse using ETL pipeline
-        from src.etl.pdf_ingest import pdf_to_text, pdf_to_ocr_tokens
-        from src.etl.report_parse import parse_text_to_pairs, parse_tokens_to_pairs, coalesce_pairs, parse_with_advanced_extractor
+        from src.etl.pdf_ingest import pdf_to_text
         from src.etl.map_to_features import map_features
         from src.models.inference_router import _load_tab
-        
-        # Use advanced extraction pipeline first
-        advanced_result = parse_with_advanced_extractor(tmp_path)
-        
-        # Extract text and tokens from PDF (multi-page safe) - always do this
+
         text = pdf_to_text(tmp_path)
-        ocr_tokens = pdf_to_ocr_tokens(tmp_path)
-        
-        # Fallback to traditional methods if advanced extraction failed
-        if not advanced_result['extracted']:
-            if not text.strip():
-                raise HTTPException(
-                    status_code=400,
-                    detail="Could not extract text from PDF even after OCR attempt. Ensure the PDF is readable or install Tesseract for OCR (brew install tesseract on macOS)."
-                )
-            
-            # Parse lab values from text and OCR tokens
-            pairs = parse_text_to_pairs(text)
-            token_pairs = parse_tokens_to_pairs(ocr_tokens)
-            pairs.extend(token_pairs)
-            kv = coalesce_pairs(pairs)  # {lab_name: (value, unit)}
-            
-            # Use traditional extraction results
-            feats_dict = advanced_result['extracted']
-            extracted_meta = advanced_result['extracted_meta']
-            extraction_methods = ['traditional']
-        else:
-            # Use advanced extraction results
-            feats_dict = advanced_result['extracted']
-            extracted_meta = advanced_result['extracted_meta']
-            extraction_methods = advanced_result['extraction_methods']
-            text = advanced_result['text']
-            kv = {}  # Will be populated below if needed
-            
-            # Convert to kv format for compatibility
-            for lab, meta in extracted_meta.items():
-                kv[lab.lower()] = (meta['value'], meta.get('unit', ''))
+        ocr_tokens = {}
+        if not text.strip():
+            raise HTTPException(
+                status_code=400,
+                detail="Could not extract text from PDF. Ensure the PDF is readable."
+            )
+
+        client = OpenAI()
+        system = (
+            "You extract key medical values from plain text reports and return strict JSON. "
+            "Detect common labs and vitals relevant to heart and diabetes tasks. "
+            "Output only JSON with a 'pairs' array where each item has: "
+            "name (canonical snake_case), value (number), unit (string or ''), "
+            "confidence (0-1)."
+        )
+        user = (
+            f"Task: {task_enum.value}. Extract values from the following report text. "
+            f"Use canonical keys like 'trestbps', 'chol', 'fbs', 'thalach', 'oldpeak', 'slope', 'ca', 'thal' for heart; "
+            f"and 'Glucose', 'BloodPressure', 'BMI', 'Age' for diabetes. If general, include any meaningful labs.\n\n"
+            + text[:20000]
+        )
+        try:
+            resp = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user},
+                ],
+                response_format={"type": "json_object"},
+            )
+            content_str = resp.choices[0].message.content or "{}"
+            parsed_json = json.loads(content_str)
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"LLM extraction failed: {str(e)}")
+
+        pairs = parsed_json.get("pairs", []) if isinstance(parsed_json, dict) else []
+        kv = {}
+        for item in pairs:
+            try:
+                n = str(item.get("name", "")).lower().strip()
+                v = item.get("value")
+                u = item.get("unit") or ""
+                if n:
+                    kv[n] = (v, u)
+            except Exception:
+                pass
+
+        extraction_methods = ["llm_openai"]
+        feats_dict = {}
+        extracted_meta = {}
         
         # If general mode, skip model feature mapping and return all parsed pairs
         if task_enum == Task.GENERAL:
-            feats_dict = {}
             for k, tup in kv.items():
                 try:
                     feats_dict[k] = float(tup[0])
@@ -114,45 +129,49 @@ async def ingest_report(
             warnings = []
             feats = list(feats_dict.keys())
         else:
-            # Load model to get required features
             try:
                 model, preproc, feats = _load_tab(task_enum.value)
             except Exception as e:
-                raise HTTPException(
-                    status_code=500,
-                    detail=f"Failed to load model for task {task_enum.value}: {str(e)}"
-                )
-            
-            # Map parsed labs to model features
+                raise HTTPException(status_code=500, detail=f"Failed to load model for task {task_enum.value}: {str(e)}")
             feats_dict, missing, warnings = map_features(task_enum.value, kv, feats)
 
-        # Build lightweight extractedMeta for UI confidence (placeholder until full pipeline)
-        # Use advanced extraction confidence if available
-        if extraction_methods != ['traditional'] and extracted_meta:
-            # Use the advanced extraction metadata
-            pass  # Already populated above
-        else:
-            # Traditional extraction metadata
-            extracted_meta = {}
-            try:
-                for f in feats:
-                    val = feats_dict.get(f)
-                    # naive source detection
-                    source = 'parsed' if f.lower() in kv else 'imputed'
-                    confidence = 0.92 if source == 'parsed' else 0.50
-                    unit = None
-                    if f.lower() in kv:
-                        tup = kv.get(f.lower())
-                        if isinstance(tup, (tuple, list)) and len(tup) >= 2:
-                            unit = tup[1]
-                    extracted_meta[f] = {
-                        'value': val,
-                        'unit': unit,
-                        'confidence': confidence,
-                        'source': source,
-                    }
-            except Exception:
-                extracted_meta = {k: {'value': v, 'confidence': 0.5, 'source': 'unknown'} for k, v in (feats_dict or {}).items()}
+        ranges = load_ranges(task_enum.value)
+        extracted_meta = {}
+        try:
+            for f in feats:
+                val = feats_dict.get(f)
+                source = 'llm' if f.lower() in kv else 'imputed'
+                confidence = 0.93 if source == 'llm' else 0.5
+                unit = None
+                if f.lower() in kv:
+                    tup = kv.get(f.lower())
+                    if isinstance(tup, (tuple, list)) and len(tup) >= 2:
+                        unit = tup[1]
+                rng = None
+                out_of_range = False
+                try:
+                    r = ranges.get(f) or ranges.get(f.lower())
+                    if isinstance(r, dict):
+                        mn = r.get('min')
+                        mx = r.get('max')
+                        rng = {'min': mn, 'max': mx}
+                        if isinstance(val, (int, float)):
+                            if mn is not None and val < mn:
+                                out_of_range = True
+                            if mx is not None and val > mx:
+                                out_of_range = True
+                except Exception:
+                    pass
+                extracted_meta[f] = {
+                    'value': val,
+                    'unit': unit,
+                    'confidence': confidence,
+                    'source': source,
+                    'normal_range': rng,
+                    'out_of_range': out_of_range,
+                }
+        except Exception:
+            extracted_meta = {k: {'value': v, 'confidence': 0.5, 'source': 'unknown'} for k, v in (feats_dict or {}).items()}
         
         # Ensure Profile exists for user (required relation)
         try:
@@ -172,7 +191,6 @@ async def ingest_report(
         
         # Create report record in database
         # Prisma JSON fields accept Python dict/list directly
-        import json
         try:
             # Convert to JSON-serializable format
             extracted_json = json.loads(json.dumps(feats_dict)) if feats_dict else {}
@@ -202,6 +220,7 @@ async def ingest_report(
                 detail=f"Failed to save report to database: {str(e)}"
             )
         
+        out_of_range_fields = [k for k, v in extracted_meta.items() if isinstance(v, dict) and v.get('out_of_range')]
         return {
             "report_id": report.id,
             "extracted": feats_dict,
@@ -210,10 +229,12 @@ async def ingest_report(
             "extracted_meta": extracted_meta,
             "parsed_keys": list(kv.keys()),
             "extracted_text_length": len(text),
+            "raw_text": text,
             "pages": len(ocr_tokens.get('pages', [])) if isinstance(ocr_tokens, dict) else 0,
             "task": task_enum.value,
             "extraction_methods": extraction_methods,
-            "overall_confidence": extracted_meta.get('overall_confidence', 0.0) if isinstance(extracted_meta, dict) else 0.0
+            "out_of_range_fields": out_of_range_fields,
+            "overall_confidence": 0.0
         }
     except HTTPException:
         raise

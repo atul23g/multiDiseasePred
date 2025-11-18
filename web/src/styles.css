@@ -38,6 +38,20 @@ body{
   line-height:1.6;
   -webkit-font-smoothing:antialiased;
   -moz-osx-font-smoothing:grayscale;
+  position:relative;
+}
+
+body::before{
+  content:'';
+  position:fixed;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  background:radial-gradient(circle at 20% 80%, rgba(59, 130, 246, 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+  pointer-events:none;
+  z-index:-1;
 }
 
 /* Navigation */
@@ -110,6 +124,31 @@ body{
   max-width:1200px;
   margin:2rem auto;
   padding:0 1.5rem;
+  animation:fadeInUp 0.8s ease-out;
+}
+
+/* Page Headers */
+.page-header{
+  text-align:center;
+  margin-bottom:3rem;
+  animation:fadeInUp 0.6s ease-out;
+}
+
+.page-title{
+  font-size:2.5rem;
+  font-weight:700;
+  background:linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  margin-bottom:0.5rem;
+}
+
+.page-subtitle{
+  font-size:1.125rem;
+  color:var(--text-secondary);
+  max-width:600px;
+  margin:0 auto;
 }
 
 /* Cards */
@@ -119,11 +158,51 @@ body{
   border-radius:var(--radius-lg);
   padding:2rem;
   transition:var(--transition);
+  animation:fadeInUp 0.6s ease-out;
+  position:relative;
+  overflow:hidden;
 }
 
 .card:hover{
   border-color:var(--primary);
-  transform:translateY(-1px);
+  transform:translateY(-2px);
+  box-shadow:var(--shadow-lg);
+}
+
+.card::before{
+  content:'';
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  height:3px;
+  background:linear-gradient(90deg, var(--primary), var(--secondary));
+  opacity:0;
+  transition:opacity 0.3s ease;
+}
+
+.card:hover::before{
+  opacity:1;
+}
+
+/* Assessment Card - Premium styling */
+.assessment-card{
+  background:linear-gradient(135deg, var(--surface) 0%, rgba(30, 41, 59, 0.8) 100%);
+  border:1px solid rgba(59, 130, 246, 0.2);
+  backdrop-filter:blur(10px);
+  position:relative;
+}
+
+.assessment-card::after{
+  content:'';
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  bottom:0;
+  background:radial-gradient(circle at top right, rgba(59, 130, 246, 0.1) 0%, transparent 50%);
+  pointer-events:none;
+  border-radius:inherit;
 }
 
 /* Buttons */
@@ -136,11 +215,33 @@ body{
   font-weight:500;
   cursor:pointer;
   transition:var(--transition);
+  position:relative;
+  overflow:hidden;
 }
 
 .btn:hover{
   background:var(--primary-dark);
   transform:translateY(-1px);
+  box-shadow:var(--shadow-glow);
+}
+
+.btn:active{
+  transform:translateY(0);
+}
+
+.btn::before{
+  content:'';
+  position:absolute;
+  top:0;
+  left:-100%;
+  width:100%;
+  height:100%;
+  background:linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  transition:left 0.6s ease;
+}
+
+.btn:hover::before{
+  left:100%;
 }
 
 .btn:disabled{
@@ -162,18 +263,136 @@ body{
 .btn-secondary{
   background:var(--surface-hover);
   color:var(--text-primary);
-  border:1px solid var(--border);
+  border:1px solid var(--border-light);
 }
 
 .btn-secondary:hover{
   background:var(--surface-light);
+  border-color:var(--primary);
+  box-shadow:var(--shadow-glow);
 }
 
-.btn-row{
+/* Animated Button Group */
+.btn-group{
   display:flex;
-  gap:20px;
-  flex-wrap:wrap;
+  gap:1rem;
   align-items:center;
+  justify-content:center;
+  flex-wrap:wrap;
+}
+
+.btn-group .btn{
+  min-width:140px;
+  text-align:center;
+  animation:fadeInUp 0.5s ease-out;
+}
+
+.btn-group .btn:nth-child(2){
+  animation-delay:0.1s;
+}
+
+@keyframes fadeInUp{
+  from{
+    opacity:0;
+    transform:translateY(20px);
+  }
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}
+
+/* Extracted Values Grid */
+.extracted-values-grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(250px, 1fr));
+  gap:12px;
+  margin-bottom:16px;
+}
+
+.values-section{
+  border-top:1px solid var(--border);
+  padding-top:12px;
+}
+
+.section-header{
+  background:var(--surface-hover);
+  border:1px solid var(--border-light);
+  border-radius:6px;
+  padding:8px 12px;
+}
+
+.extracted-value-card{
+  background:var(--surface-hover);
+  border:1px solid var(--border-light);
+  border-radius:6px;
+  padding:12px;
+  transition:all 0.2s ease;
+  position:relative;
+  overflow:hidden;
+}
+
+.extracted-value-card:hover{
+  transform:translateY(-1px);
+  box-shadow:var(--shadow-sm);
+}
+
+.extracted-value-card.out-of-range{
+  background:rgba(239, 68, 68, 0.1);
+  border-color:var(--error);
+}
+
+.extracted-value-card.out-of-range::before{
+  content:'';
+  position:absolute;
+  top:0;
+  left:0;
+  right:0;
+  height:2px;
+  background:var(--error);
+  opacity:0.6;
+}
+
+.extracted-value-header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  margin-bottom:4px;
+}
+
+.extracted-value-label{
+  font-weight:600;
+  font-size:14px;
+  color:var(--text-primary);
+}
+
+.extracted-value-warning{
+  color:var(--error);
+  font-size:12px;
+}
+
+.extracted-value-content{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.value-actions .btn{
+  padding:4px 8px;
+}
+
+.extracted-value-data{
+  font-size:16px;
+  font-weight:500;
+  color:var(--text-primary);
+}
+
+.extracted-value-confidence{
+  font-size:12px;
+  color:var(--text-secondary);
+  background:var(--surface);
+  padding:2px 6px;
+  border-radius:4px;
 }
 
 /* Form Elements */
@@ -219,6 +438,28 @@ body{
   font-size:0.875rem;
   box-shadow:var(--shadow-sm);
 }
+
+/* Report List Items */
+.report-item{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:1rem;
+  transition:var(--transition);
+  animation:fadeInUp 0.4s ease-out;
+  animation-fill-mode:both;
+}
+
+.report-item:hover{
+  border-color:var(--primary-light);
+  transform:translateY(-1px);
+  box-shadow:var(--shadow-md);
+}
+
+.report-item:nth-child(2){ animation-delay:0.05s; }
+.report-item:nth-child(3){ animation-delay:0.1s; }
+.report-item:nth-child(4){ animation-delay:0.15s; }
+.report-item:nth-child(5){ animation-delay:0.2s; }
 
 .badge-high{
   background:linear-gradient(135deg, var(--secondary) 0%, var(--success) 100%);

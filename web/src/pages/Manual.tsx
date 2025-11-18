@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { predictWithFeatures, Task, getFeatureSchema } from '../lib/api'
 import { getAccessToken } from '../lib/auth'
 import HealthScoreChart from '../components/HealthScoreChart'
 
 export default function Manual() {
-  const navigate = useNavigate()
   const [task, setTask] = useState<Task>('heart')
   const [schema, setSchema] = useState<Record<string, string>>({})
   const [features, setFeatures] = useState<Record<string, any>>({})
@@ -51,32 +49,7 @@ export default function Manual() {
   }
 
   return (
-    <>
-      <div className="card" style={{marginBottom:24}}>
-        <div style={{fontSize:32, fontWeight:800, lineHeight:1.2, marginBottom:8}}>
-          🤖 AI Health Assistant
-        </div>
-        <div style={{color:'var(--text-secondary)', marginBottom:16, fontSize:16}}>
-          Get personalized medical guidance. Use this after you fill values or anytime.
-        </div>
-        <div style={{marginTop:16}}>
-          <button className="btn btn-success" onClick={()=>navigate('/triage', { state: { reportData: {
-            task,
-            features,
-            prediction: result ? {
-              label: result.label,
-              probability: result.probability,
-              health_score: result.health_score,
-            } : null,
-            prediction_id: result?.prediction_id,
-          } } })}>
-            <span style={{marginRight:8}}>💬</span>
-            Start Health Consultation
-          </button>
-        </div>
-      </div>
-
-      <div className="card">
+    <div className="card">
       <h2>Manual Input</h2>
       <div className="row">
         <div className="col">
@@ -108,24 +81,8 @@ export default function Manual() {
             features={features}
             prediction={result}
           />
-          <div style={{marginTop:16}}>
-            <button className="btn btn-success" onClick={()=>navigate('/triage', { state: { reportData: {
-              task,
-              features,
-              prediction: result ? {
-                label: result.label,
-                probability: result.probability,
-                health_score: result.health_score,
-              } : null,
-              prediction_id: result?.prediction_id,
-            } } })}>
-              <span style={{marginRight:8}}>💬</span>
-              Get Personalized Health Advice
-            </button>
-          </div>
         </>
       )}
-      </div>
-    </>
+    </div>
   )
 }

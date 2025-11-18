@@ -345,6 +345,9 @@ export default function Triage() {
             <div className="badge">Analysis: {latest.task}</div>
             <div className="badge">Health Score: {latest.prediction?.health_score?.toFixed?.(2)}/100</div>
             {model && <div className="badge">AI Model: {model}</div>}
+            {Array.isArray(latest.highlights) && latest.highlights.length > 0 && (
+              <div className="badge">Abnormal: {latest.highlights.slice(0,4).join(', ')}</div>
+            )}
           </div>
         )}
         {!latest && <div className="alert" style={{marginTop:8}}>No medical data available. Please upload a report or enter manual data first.</div>}

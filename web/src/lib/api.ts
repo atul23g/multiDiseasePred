@@ -31,6 +31,8 @@ export async function ingestReport(task: Task, file: File, token?: string) {
     warnings?: string[]
     extracted_meta?: Record<string, { value: any; unit?: string|null; confidence?: number; source?: string }>
     task: string
+    raw_text?: string
+    out_of_range_fields?: string[]
   }
 }
 

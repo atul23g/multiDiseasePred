@@ -17,6 +17,8 @@ interface ChatBotProps {
     prediction?: any
     lifestyle?: any
     symptoms?: any
+    extracted_text?: string
+    highlights?: string[]
   }
 }
 
@@ -326,6 +328,20 @@ export default function ChatBot({ isOpen, onClose, userData }: ChatBotProps) {
         }
       })
       context += '\n'
+    }
+
+    if (userData?.highlights && Array.isArray(userData.highlights) && userData.highlights.length > 0) {
+      context += 'Highlighted Abnormal Values:\n'
+      userData.highlights.forEach((k) => {
+        context += `- ${formatMedicalKey(k)} (abnormal)\n`
+      })
+      context += '\n'
+    }
+
+    if (userData?.extracted_text && userData.extracted_text.length > 0) {
+      const snippet = userData.extracted_text.slice(0, 400)
+      context += 'Report Text Snippet:\n'
+      context += snippet + (userData.extracted_text.length > 400 ? '...\n\n' : '\n\n')
     }
 
     if (userData?.lifestyle) {
